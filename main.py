@@ -18,7 +18,7 @@ if argv[1] == "1":
     REGIONS = [(63, 1034, 1856, 33)]
 else:
     # Coordinates in two stream mode
-    REGIONS = [(650, 500, 200, 100), (650, 1034, 200, 33)]
+    REGIONS = [(650, 510, 200, 50), (650, 1034, 200, 33)]
 
 COUNT = 1
 
