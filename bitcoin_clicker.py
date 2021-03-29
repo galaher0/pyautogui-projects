@@ -26,6 +26,7 @@ COUNT = 1
 #TODO Refactor to locateCenterOnScreen
 # outer cycle, repeating process of click
 while True:
+    # TAB LOOP
     # waiting for tab to finish countdown
     while True:
         tab_box = pyautogui.locateOnScreen(TAB, region=TAB_REGION) or \
@@ -44,6 +45,7 @@ while True:
             print("and clicked.", end=" ")
             pyautogui.sleep(0.1)
 
+            # SCROLL LOOP
             # ensuring scroll to bottom (in order to regions to work)
             # and then clicking captcha and roll button
             while True:
@@ -58,6 +60,7 @@ while True:
                     print("and clicked.", end=" ")
                     pyautogui.sleep(0.2)
 
+                    # CAPTCHA LOOP
                     # waiting for captcha approvement and then clicking ROLL
                     captcha_timer = 0
                     captcha_timer_limit = 100 # 20 sec
@@ -84,7 +87,7 @@ while True:
                                     # waiting for an hour in the successful loop
                                     pyautogui.moveTo(x_cur, y_cur)
                                     print("SLEEPING")
-                                    pyautogui.sleep(60*60) # main cycle, successful inner loop, waiting for countdown
+                                    pyautogui.sleep(60*60)
                                     break # from captcha loop
                                 else:
                                     print("Roll btn not found", end=" ")
@@ -99,14 +102,13 @@ while True:
                             pyautogui.sleep(wait_for_captcha_sec)
                         else:
                             print("Captcha time limit exceeded") # the end of page manipulation
-                            pyautogui.click(pyautogui.locateCenterOnScreen(RELOAD))
+                            #pyautogui.click(pyautogui.locateCenterOnScreen(RELOAD))
                             break # from captcha loop
                     break # from scroll loop
                 else:
-                    print("...scrolling...", end=" ")
                     pyautogui.sleep(0.5)
                 # next scroll loop
-            break # end of page manipulation (either successful or not)
+            break # from tab loop, end of page manipulation (either successful or not)
         else:
             pyautogui.sleep(5) # inner loop waiting for page to load
 

@@ -15,16 +15,16 @@ if argv[1] == "1":
     |chat |
     |_□___|
     '''
-    REGIONS = [(63, 1034, 1856, 33)]
+    REGIONS = [(63, 1034, 1856, 45)]
 else:
     # Coordinates in two stream mode
-    REGIONS = [(650, 510, 200, 50), (650, 1034, 200, 33)]
+    REGIONS = [(650, 510, 200, 50), (650, 1034, 200, 45)]
 
 COUNT = 1
 
 while True:
     for R in REGIONS:
-        box = pyautogui.locateOnScreen(BONUS_IM, region=R)
+        box = pyautogui.locateOnScreen(BONUS_IM, region=R, confidence=0.7)
         print("\r", strftime("%H:%M:%S"), " ", box, sep="", end=" ")
         if box:
             x_cur, y_cur = pyautogui.position()
@@ -33,6 +33,7 @@ while True:
             print(f"Clicked {COUNT}")
             COUNT += 1
             pyautogui.moveTo(x_cur, y_cur)
+            pyautogui.hotkey('alt', 'tab')
 #            pyautogui.sleep(20)
         else:
             print("...waiting...", end="")
