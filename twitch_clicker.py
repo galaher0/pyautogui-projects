@@ -2,7 +2,6 @@
 import pyautogui
 from time import strftime
 from sys import argv
-from platform import system
 
 # Bonus button
 BONUS_IM = "bonus.png"
