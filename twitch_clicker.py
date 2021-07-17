@@ -7,14 +7,18 @@ from sys import argv
 BONUS_IM = "bonus.png"
 BONUS_COLOR = (0, 245, 154)
 
+
+'''
+Bonus coordinates if one stream in the following pos:
+    monitor1
++-----+-------+
+|video|another|
++-----+chrome |
+|chat |window |
+|_□___|_______+
+'''
+
 if argv[1] == "1":
-    '''Bonus coordinates if one stream in the following pos:
-    +-----+
-    |video|
-    +-----+
-    |chat |
-    |_□___|
-    '''
     REGIONS = [(63, 1034, 1856, 45)]
 else:
     # Coordinates in two stream mode
