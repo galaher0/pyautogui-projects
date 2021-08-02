@@ -8,6 +8,7 @@ from typing import Tuple
 
 # CONSTANTS
 
+# TODO refactor constants to enums
 TAB = "b_tab.png"
 ST = "selected_tab.png"
 ST_DARK = "st_dark.png"
@@ -30,15 +31,80 @@ CLICKS_TO_SCROLL = -12
 CLICK_COUNT = 1
 
 
+class InitialState:
+    """Saves and restores initial mouse position and browser tab selection"""
+
+    _x_cur: int
+    _y_cur: int
+    _selected_tab: int
+
+    def save_state(self):
+        self._x_cur, self._y_cur = self._get_current_mouse_position()
+        self._selected_tab = self._get_currently_selected_tab()
+
+    def restore_state(self):
+        """the order of funcs matters"""
+        self._return_selection_to_prev_tab()
+        self._return_cursor_to_initial_position()
+        self._switch_window_context()
+
+    def _get_current_mouse_position(self) -> Tuple[int, int]:
+        return pyautogui.position()
+
+    def _return_cursor_to_initial_position(self) -> None:
+        pyautogui.moveTo(self._x_cur, self._y_cur)
+
+    def _get_currently_selected_tab(self) -> Box:
+        tab_left_part_loc = pyautogui.locateOnScreen(
+            ST, region=ST_REGION, confidence=0.8
+        ) or \
+            pyautogui.locateOnScreen(
+            ST_DARK, region=ST_REGION, confidence=0.8
+        )
+        # making sure we click then tabs' icon
+        if tab_left_part_loc:
+            tab_icon_loc = Box(tab_left_part_loc[0] + 6,
+                               *tab_left_part_loc[1:])
+        else:
+            tab_icon_loc = tab_left_part_loc
+        print(f"Currently selected tab: {tab_icon_loc}")
+        return tab_icon_loc
+
+    def _return_selection_to_prev_tab(self) -> None:
+        pyautogui.click(self._selected_tab)
+
+    def _switch_window_context(self) -> None:
+        pyautogui.hotkey('alt', 'tab')
+
+
+class MessageManager:
+    """Correctly updates stdout messages 
+    (they don't do it every time print is called)"""
+
+    info: str = " "
+
+    def _update_message(self, msg_chunk: str, end: bool = False) -> None:
+        cur_time = f'\r{strftime("%H:%M:%S")} '
+
+        self.info += msg_chunk + " "
+
+        msg = cur_time + self.info
+        if not end:
+            print(msg, end="")
+        else:
+            print(msg)
+            self.info = " "
+
+    def add_to_msg(self, msg_chunk: str) -> None:
+        self._update_message(msg_chunk)
+
+    def end_msg_with(self, end_msg_chunk: str) -> None:
+        self._update_message(end_msg_chunk, end=True)
+
+
+logger = MessageManager()
+
 # FUNCTION DEFINITIONS
-
-def get_current_mouse_position() -> Tuple[int, int]:
-    return pyautogui.position()
-
-
-def return_cursor_to_initial_position(x: int, y: int) -> None:
-    pyautogui.moveTo(x, y)
-
 
 def fast_click_found_box(coordinates: Box) -> None:
     pyautogui.click(coordinates)
@@ -55,10 +121,9 @@ def find_and_click_bitcoin_tab() -> Box:
         tab_box = find_bitcoin_tab()
 
         if tab_box:
-            print(f'\r{strftime("%H:%M:%S")}', end=" ")
-            print("Tab found...", end=" ")
+            logger.add_to_msg("Tab found...")
             fast_click_found_box(tab_box)
-            print("and clicked.", end=" ")
+            logger.add_to_msg("and clicked.")
             pyautogui.sleep(0.2)
             return tab_box
         else:
@@ -86,24 +151,37 @@ def slow_captcha_click(captcha_coordinates: Box) -> None:
     pyautogui.mouseDown(captcha_coordinates)
     pyautogui.sleep(0.2)
     pyautogui.mouseUp()
-    print("and clicked.", end=" ")
+    logger.add_to_msg("and clicked.")
     pyautogui.sleep(0.2)
 
 
 def find_and_click_captcha(tab_box: Box) -> None:
-    captcha_search_time_limit = 50  # ~10 sec
+    captcha_search_time_limit = 25  # ~5 sec
+    appr_time_limit = 10  # ~2 sec
     wait_period = 0.2
 
     for i in range(captcha_search_time_limit):
         captcha_box = find_captcha()
         if captcha_box:
-            print("Captcha found...", end=" ")
+            logger.add_to_msg("Captcha found...")
             slow_captcha_click(captcha_box)
-            return
+            for j in range(appr_time_limit):
+                if is_captcha_approved(tab_box):
+                    logger.add_to_msg(
+                        f"Captcha ok, time limit: "
+                        f"{j*wait_period}/"
+                        f"{appr_time_limit*wait_period}."
+                    )
+                    return True
+                else:
+                    slow_captcha_click(captcha_box)
+                    pyautogui.sleep(wait_period)
+            logger.end_msg_with("Captcha approvement time limit exceeded")
         else:
-            print("Captcha not found...", end=" ")
+            logger.add_to_msg("Captcha not found...")
             scroll_down_the_page(tab_box)
             pyautogui.sleep(wait_period)
+    return False
 
 
 def find_captcha_approvement() -> Box:
@@ -113,23 +191,9 @@ def find_captcha_approvement() -> Box:
 
 
 def is_captcha_approved(tab_box: Box) -> bool:
-    time_limit = 50  # ~10 sec
-    wait_period = 0.2
-
-    for i in range(time_limit):
-        if find_captcha_approvement():
-
-            print(
-                f"Captcha ok, time limit: "
-                f"{i*wait_period}/"
-                f"{time_limit*wait_period}.",
-                end=" "
-            )
-            return True
-        pyautogui.sleep(wait_period)
-        scroll_down_the_page(tab_box)
-
-    print("Captcha approvement time limit exceeded")
+    if find_captcha_approvement():
+        return True
+    scroll_down_the_page(tab_box)
     return False
 
 
@@ -145,12 +209,12 @@ def is_roll_btn_clicked(tab_box) -> bool:
     for i in range(attempts):
         roll_box = find_roll_btn()
         if roll_box:
-            print("Roll btn found.", end=" ")
+            logger.add_to_msg("Roll btn found.")
             fast_click_found_box(roll_box)
-            print(f"Clicked {CLICK_COUNT}.")
+            logger.end_msg_with(f"Clicked {CLICK_COUNT}.")
             return True
         else:
-            print("Roll btn not found", end=" ")
+            logger.add_to_msg("Roll btn not found")
             scroll_down_the_page(tab_box)
     return False
 
@@ -160,31 +224,7 @@ def reload_page() -> None:
         RELOAD_BTN, region=RELOAD_REGION, confidence=0.8
     )
     pyautogui.click(reload_box)
-    print("RELOADING", end=" ")
-
-
-def get_currently_selected_tab() -> Box:
-    tab_left_part_loc = pyautogui.locateOnScreen(
-        ST, region=ST_REGION, confidence=0.8
-    ) or \
-        pyautogui.locateOnScreen(
-        ST_DARK, region=ST_REGION, confidence=0.8
-    )
-    # making sure we click then tabs' icon
-    if tab_left_part_loc:
-        tab_icon_loc = Box(tab_left_part_loc[0] + 6, *tab_left_part_loc[1:])
-    else:
-        tab_icon_loc = tab_left_part_loc
-    print(f"Currently selected tab: {tab_icon_loc}")
-    return tab_icon_loc
-
-
-def return_selection_to_prev_tab(coordinates: Box) -> None:
-    pyautogui.click(coordinates)
-
-
-def switch_window_context() -> None:
-    pyautogui.hotkey('alt', 'tab')
+    logger.add_to_msg("RELOADING")
 
 
 def is_tab_selected():
@@ -195,48 +235,29 @@ def is_tab_selected():
 ###SCRIPT###
 ############
 
-# outer cycle, clicking process repeates every hour (according to site)
+state = InitialState()
+# clicking process repeates every hour (according to site mechanics)
 while True:
 
-    x_cur, y_cur = get_current_mouse_position()
-    cur_selected_tab = get_currently_selected_tab()
+    state.save_state()
 
     tab_box = find_and_click_bitcoin_tab()
 
-    # SCROLL LOOP
-    # ensuring scroll to bottom (in order to regions to work)
-    # and then clicking captcha and roll button
-    max_attempts = 5
-    cur_attempt = 0
-    while True:
+    scroll_down_the_page(tab_box)
 
-        cur_attempt += 1
-        if cur_attempt > max_attempts:
-            reload_page()
-            return_selection_to_prev_tab(cur_selected_tab)
-            return_cursor_to_initial_position(x_cur, y_cur)
-            break
+    if not find_and_click_captcha(tab_box):
+        find_and_click_bitcoin_tab()
+        reload_page()
+        state.restore_state()
+        continue
 
-        scroll_down_the_page(tab_box)
+    if is_roll_btn_clicked(tab_box):
 
-        find_and_click_captcha(tab_box)
+        CLICK_COUNT += 1
 
-        if is_captcha_approved(tab_box):
+        state.restore_state()
 
-            if is_roll_btn_clicked(tab_box):
-
-                CLICK_COUNT += 1
-
-                return_selection_to_prev_tab(cur_selected_tab)
-                return_cursor_to_initial_position(x_cur, y_cur)
-                switch_window_context()
-
-                pyautogui.sleep(60 * 60)
-                break  # from scroll loop
-            else:
-                reload_page()
-                return_selection_to_prev_tab(cur_selected_tab)
-                return_cursor_to_initial_position(x_cur, y_cur)
-                break
-        else:
-            fast_click_found_box(tab_box)  # remove selection from captcha
+        pyautogui.sleep(60 * 60)
+    else:
+        reload_page()
+        state.restore_state()
