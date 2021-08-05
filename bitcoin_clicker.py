@@ -77,23 +77,22 @@ class InitialState:
         pyautogui.hotkey('alt', 'tab')
 
 
-class MessageManager:
-    """Correctly updates stdout messages 
-    (they don't do it every time print is called)"""
+class Logger:
+    """Controls logging to stdout"""
 
-    info: str = " "
+    msg_ongoing: bool = False
 
     def _update_message(self, msg_chunk: str, end: bool = False) -> None:
-        cur_time = f'\r{strftime("%H:%M:%S")} '
 
-        self.info += msg_chunk + " "
+        if not self.msg_ongoing:
+            print(f'\r{strftime("%H:%M:%S")}', end=" ", flush=True)
+            self.msg_ongoing = True
 
-        msg = cur_time + self.info
         if not end:
-            print(msg, end="")
+            print(msg_chunk, end=" ", flush=True)
         else:
-            print(msg)
-            self.info = " "
+            print(msg_chunk)
+            self.msg_ongoing = False
 
     def add_to_msg(self, msg_chunk: str) -> None:
         self._update_message(msg_chunk)
@@ -102,7 +101,7 @@ class MessageManager:
         self._update_message(end_msg_chunk, end=True)
 
 
-logger = MessageManager()
+logger = Logger()
 
 # FUNCTION DEFINITIONS
 
@@ -203,7 +202,7 @@ def find_roll_btn() -> Box:
     )
 
 
-def is_roll_btn_clicked(tab_box) -> bool:
+def is_roll_btn_clicked(tab_box: Box) -> bool:
     # maybe unnecessary loop (guaranteed to find)
     attempts = 5
     for i in range(attempts):
