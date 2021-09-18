@@ -18,17 +18,23 @@ CAPTCHA_APPR = "captcha_appr.png"
 ROLL_BTN = "roll_btn.png"
 RELOAD_BTN = "reload.png"
 
-TAB_REGION = (674, 17, 1245, 20)
-ST_REGION = (900, 7, 989, 40)
-CAPTCHA_REGION = (1126, 785, 674, 90)
-ROLL_REGION = (1200, 860, 600, 90)
-RELOAD_REGION = (674, 48, 1000, 30)
+TAB_REGION = (0, 17, 1919, 20)  #(674, 17, 1245, 20)
+ST_REGION = (470, 7, 1449, 40)  #(900, 7, 989, 40)
+CAPTCHA_REGION = (0, 785, 1919, 90)  #(1126, 785, 674, 90)
+ROLL_REGION = (0, 860, 1919, 90)  #(1200, 860, 600, 90)
+RELOAD_REGION = (470, 48, 1449, 30)  #(674, 48, 1000, 30)
 SCROLL_DOWN_REGION = (1890, 1030, 29, 49)
 
 PIXELS_TO_GO_DOWN = 450
 CLICKS_TO_SCROLL = -12
 
 CLICK_COUNT = 1
+
+
+def CL_gen():
+    # sometimes different levels work
+    for i in range(9, 5, -1):
+        yield i / 10
 
 
 class InitialState:
@@ -54,20 +60,26 @@ class InitialState:
     def _return_cursor_to_initial_position(self) -> None:
         pyautogui.moveTo(self._x_cur, self._y_cur)
 
-    def _get_currently_selected_tab(self) -> Box:
-        tab_left_part_loc = pyautogui.locateOnScreen(
-            ST, region=ST_REGION, confidence=0.8
-        ) or \
-            pyautogui.locateOnScreen(
-            ST_DARK, region=ST_REGION, confidence=0.8
-        )
-        # making sure we click then tabs' icon
-        if tab_left_part_loc:
-            tab_icon_loc = Box(tab_left_part_loc[0] + 6,
-                               *tab_left_part_loc[1:])
-        else:
-            tab_icon_loc = tab_left_part_loc
-        print(f"Currently selected tab: {tab_icon_loc}")
+    def _get_currently_selected_tab(self) -> Box:  # Union[Box, None]
+
+        for CL in CL_gen():
+            tab_left_part_loc = pyautogui.locateOnScreen(
+                ST, region=ST_REGION, confidence=CL
+            ) or \
+                pyautogui.locateOnScreen(
+                ST_DARK, region=ST_REGION, confidence=CL
+            )
+            # making sure we click then tabs' icon
+            if tab_left_part_loc:
+                tab_icon_loc = Box(tab_left_part_loc[0] + 6,
+                                   *tab_left_part_loc[1:])
+                print(f"Currently selected tab: {tab_icon_loc} "
+                      f"with {CL} confidence level.")
+                return tab_icon_loc
+            else:
+                tab_icon_loc = tab_left_part_loc
+        print(f"Currently selected tab: {tab_icon_loc} "
+              f"with {CL} confidence level.")
         return tab_icon_loc
 
     def _return_selection_to_prev_tab(self) -> None:
@@ -107,10 +119,17 @@ logger = Logger()
 
 def fast_click_found_box(coordinates: Box) -> None:
     pyautogui.click(coordinates)
+    logger.add_to_msg("Tab clicked.")
 
 
-def find_bitcoin_tab() -> Box:
-    return pyautogui.locateOnScreen(TAB, region=TAB_REGION, confidence=0.7)
+def find_bitcoin_tab() -> Box:  # Union[Box, None]
+    for CL in CL_gen():
+        tab = pyautogui.locateOnScreen(TAB, region=TAB_REGION, confidence=CL)
+        if tab:
+            logger.add_to_msg(f"Tab found with {CL} CL.")
+            return tab
+    logger.add_to_msg(f"Tab not found.")
+    return None
 
 
 def find_and_click_bitcoin_tab() -> Box:
@@ -120,9 +139,7 @@ def find_and_click_bitcoin_tab() -> Box:
         tab_box = find_bitcoin_tab()
 
         if tab_box:
-            logger.add_to_msg("Tab found...")
             fast_click_found_box(tab_box)
-            logger.add_to_msg("and clicked.")
             pyautogui.sleep(0.2)
             return tab_box
         else:
@@ -140,10 +157,16 @@ def scroll_down_the_page(tab_box: Box) -> None:
         pyautogui.sleep(0.1)
 
 
-def find_captcha() -> Box:
-    return pyautogui.locateOnScreen(
-        CAPTCHA, region=CAPTCHA_REGION, confidence=0.5
-    )
+def find_captcha() -> Box:  # Union[Box, None]
+    for CL in CL_gen():
+        captcha_box = pyautogui.locateOnScreen(
+            CAPTCHA, region=CAPTCHA_REGION, confidence=CL
+        )
+        if captcha_box:
+            logger.add_to_msg(f"Captcha found with {CL} CL.")
+            return captcha_box
+    logger.add_to_msg(f"Captcha not found.")
+    return None
 
 
 def slow_captcha_click(captcha_coordinates: Box) -> None:
@@ -162,7 +185,6 @@ def find_and_click_captcha(tab_box: Box) -> None:
     for i in range(captcha_search_time_limit):
         captcha_box = find_captcha()
         if captcha_box:
-            logger.add_to_msg("Captcha found...")
             slow_captcha_click(captcha_box)
             for j in range(appr_time_limit):
                 if is_captcha_approved(tab_box):
@@ -183,10 +205,16 @@ def find_and_click_captcha(tab_box: Box) -> None:
     return False
 
 
-def find_captcha_approvement() -> Box:
-    return pyautogui.locateOnScreen(
-        CAPTCHA_APPR, region=CAPTCHA_REGION, confidence=0.8
-    )
+def find_captcha_approvement() -> Box:  # Union[Box, None]
+    for CL in CL_gen():
+        captcha_appr = pyautogui.locateOnScreen(
+            CAPTCHA_APPR, region=CAPTCHA_REGION, confidence=CL
+        )
+        if captcha_appr:
+            logger.add_to_msg(f"Captcha appr found with {CL} CL.")
+            return captcha_appr
+    logger.add_to_msg(f"Captcha appr not found.")
+    return None
 
 
 def is_captcha_approved(tab_box: Box) -> bool:
@@ -196,10 +224,16 @@ def is_captcha_approved(tab_box: Box) -> bool:
     return False
 
 
-def find_roll_btn() -> Box:
-    return pyautogui.locateOnScreen(
-        ROLL_BTN, region=ROLL_REGION, confidence=0.8
-    )
+def find_roll_btn() -> Box:  # Union[Box, None]
+    for CL in CL_gen():
+        roll_btn_box = pyautogui.locateOnScreen(
+            ROLL_BTN, region=ROLL_REGION, confidence=CL
+        )
+        if roll_btn_box:
+            logger.add_to_msg(f"Roll btn found with {CL} CL.")
+            return roll_btn_box
+    logger.add_to_msg(f"Roll btn not found.")
+    return None
 
 
 def is_roll_btn_clicked(tab_box: Box) -> bool:
@@ -208,26 +242,30 @@ def is_roll_btn_clicked(tab_box: Box) -> bool:
     for i in range(attempts):
         roll_box = find_roll_btn()
         if roll_box:
-            logger.add_to_msg("Roll btn found.")
             fast_click_found_box(roll_box)
             logger.end_msg_with(f"Clicked {CLICK_COUNT}.")
             return True
         else:
-            logger.add_to_msg("Roll btn not found")
             scroll_down_the_page(tab_box)
     return False
 
 
+def find_reload_btn() -> Box:  # Union[Box, None]
+    for CL in CL_gen():
+        reload_box = pyautogui.locateOnScreen(
+            RELOAD_BTN, region=RELOAD_REGION, confidence=CL
+        )
+        if reload_box:
+            logger.add_to_msg(f"Reload btn found with {CL} CL.")
+            return reload_box
+    logger.add_to_msg(f"Roll btn not found.")
+    return None
+
+
 def reload_page() -> None:
-    reload_box = pyautogui.locateOnScreen(
-        RELOAD_BTN, region=RELOAD_REGION, confidence=0.8
-    )
+    reload_box = find_reload_btn()
     pyautogui.click(reload_box)
     logger.add_to_msg("RELOADING")
-
-
-def is_tab_selected():
-    pass
 
 
 ############

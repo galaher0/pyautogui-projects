@@ -32,13 +32,12 @@ while True:
         print("\r", strftime("%H:%M:%S"), " ", box, sep="", end=" ")
         if box:
             x_cur, y_cur = pyautogui.position()
-            place_to_click = pyautogui.center(box)
-            pyautogui.click(place_to_click)
-            print(f"Clicked {COUNT}")
-            COUNT += 1
+            pyautogui.click(box)
             pyautogui.moveTo(x_cur, y_cur)
             pyautogui.hotkey('alt', 'tab')
-#            pyautogui.sleep(870)
+            print(f"Clicked {COUNT}")
+            COUNT += 1
         else:
             print("...waiting...", end="")
+    del box
     pyautogui.sleep(10)
