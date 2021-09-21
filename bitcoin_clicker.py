@@ -119,17 +119,21 @@ logger = Logger()
 
 def fast_click_found_box(coordinates: Box) -> None:
     pyautogui.click(coordinates)
-    logger.add_to_msg("Tab clicked.")
+    logger.add_to_msg("...and clicked.")
 
 
 def find_bitcoin_tab() -> Box:  # Union[Box, None]
-    for CL in CL_gen():
-        tab = pyautogui.locateOnScreen(TAB, region=TAB_REGION, confidence=CL)
-        if tab:
-            logger.add_to_msg(f"Tab found with {CL} CL.")
-            return tab
-    logger.add_to_msg(f"Tab not found.")
-    return None
+    return pyautogui.locateOnScreen(TAB, region=TAB_REGION, confidence=0.8)
+
+
+# def find_bitcoin_tab() -> Box:  # Union[Box, None]
+#     for CL in CL_gen():
+#         tab = pyautogui.locateOnScreen(TAB, region=TAB_REGION, confidence=CL)
+#         if tab:
+#             logger.add_to_msg(f"Tab found with {CL} CL.")
+#             return tab
+#     logger.add_to_msg(f"Tab not found.")
+#     return None
 
 
 def find_and_click_bitcoin_tab() -> Box:
@@ -139,6 +143,7 @@ def find_and_click_bitcoin_tab() -> Box:
         tab_box = find_bitcoin_tab()
 
         if tab_box:
+            logger.add_to_msg(f"Tab found.")
             fast_click_found_box(tab_box)
             pyautogui.sleep(0.2)
             return tab_box
@@ -199,7 +204,6 @@ def find_and_click_captcha(tab_box: Box) -> None:
                     pyautogui.sleep(wait_period)
             logger.end_msg_with("Captcha approvement time limit exceeded")
         else:
-            logger.add_to_msg("Captcha not found...")
             scroll_down_the_page(tab_box)
             pyautogui.sleep(wait_period)
     return False
